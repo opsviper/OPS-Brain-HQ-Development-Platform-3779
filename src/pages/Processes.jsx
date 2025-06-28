@@ -30,85 +30,27 @@ const Processes = () => {
 
   const fetchProcesses = async () => {
     try {
-      const mockProcesses = [
-        {
-          id: '1',
-          name: 'Client Onboarding',
-          description: 'Complete process for onboarding new clients including documentation, setup, and training',
-          status: 'Live',
-          owner_name: 'John Doe',
-          owner: '1',
-          sop_url: 'https://docs.company.com/client-onboarding',
-          created_at: '2024-01-01',
-          systems_count: 2,
-          equipment_count: 1,
-          software_count: 3,
-          team_count: 2,
-          tasks_count: 5
-        },
-        {
-          id: '2',
-          name: 'Monthly Reporting',
-          description: 'Generate and distribute monthly performance reports to stakeholders',
-          status: 'Live',
-          owner_name: 'Jane Smith',
-          owner: '2',
-          sop_url: 'https://docs.company.com/monthly-reporting',
-          created_at: '2024-01-02',
-          systems_count: 1,
-          equipment_count: 0,
-          software_count: 2,
-          team_count: 1,
-          tasks_count: 3
-        },
-        {
-          id: '3',
-          name: 'System Maintenance',
-          description: 'Regular maintenance procedures for all systems and equipment',
-          status: 'Planned',
-          owner_name: 'Bob Wilson',
-          owner: '3',
-          sop_url: null,
-          created_at: '2024-01-03',
-          systems_count: 3,
-          equipment_count: 5,
-          software_count: 1,
-          team_count: 2,
-          tasks_count: 8
-        }
-      ];
+      const { data, error } = await supabase
+        .from('processes_67abc23def')
+        .select(`
+          *,
+          users_67abc23def!processes_67abc23def_owner_fkey(name)
+        `)
+        .order('created_at', { ascending: false });
 
-      try {
-        const { data, error } = await supabase
-          .from('processes')
-          .select(`
-            *,
-            users!processes_owner_fkey(name),
-            process_systems(system_id),
-            process_equipment(equipment_id),
-            process_software(software_id),
-            process_team(team_id),
-            tasks(id)
-          `)
-          .order('created_at', { ascending: false });
+      if (error) throw error;
 
-        if (error) throw error;
+      const transformedProcesses = data?.map(process => ({
+        ...process,
+        owner_name: process.users_67abc23def?.name,
+        systems_count: 0, // Will implement relationships later
+        equipment_count: 0,
+        software_count: 0,
+        team_count: 0,
+        tasks_count: 0
+      })) || [];
 
-        const transformedProcesses = data?.map(process => ({
-          ...process,
-          owner_name: process.users?.name,
-          systems_count: process.process_systems?.length || 0,
-          equipment_count: process.process_equipment?.length || 0,
-          software_count: process.process_software?.length || 0,
-          team_count: process.process_team?.length || 0,
-          tasks_count: process.tasks?.length || 0
-        })) || [];
-
-        setProcesses(transformedProcesses);
-      } catch (error) {
-        console.log('Using mock data for development');
-        setProcesses(mockProcesses);
-      }
+      setProcesses(transformedProcesses);
     } catch (error) {
       console.error('Error fetching processes:', error);
     } finally {
@@ -118,23 +60,13 @@ const Processes = () => {
 
   const fetchUsers = async () => {
     try {
-      const mockUsers = [
-        { id: '1', name: 'John Doe', email: 'john@opsviper.com' },
-        { id: '2', name: 'Jane Smith', email: 'jane@opsviper.com' },
-        { id: '3', name: 'Bob Wilson', email: 'bob@opsviper.com' }
-      ];
+      const { data, error } = await supabase
+        .from('users_67abc23def')
+        .select('id, name, email')
+        .order('name');
 
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, name, email')
-          .order('name');
-
-        if (error) throw error;
-        setUsers(data || []);
-      } catch (error) {
-        setUsers(mockUsers);
-      }
+      if (error) throw error;
+      setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -142,23 +74,13 @@ const Processes = () => {
 
   const fetchSystems = async () => {
     try {
-      const mockSystems = [
-        { id: '1', name: 'CRM System', type: 'Customer Management' },
-        { id: '2', name: 'ERP System', type: 'Enterprise Resource Planning' },
-        { id: '3', name: 'Monitoring System', type: 'System Monitoring' }
-      ];
+      const { data, error } = await supabase
+        .from('systems_67abc23def')
+        .select('id, name, type')
+        .order('name');
 
-      try {
-        const { data, error } = await supabase
-          .from('systems')
-          .select('id, name, type')
-          .order('name');
-
-        if (error) throw error;
-        setSystems(data || []);
-      } catch (error) {
-        setSystems(mockSystems);
-      }
+      if (error) throw error;
+      setSystems(data || []);
     } catch (error) {
       console.error('Error fetching systems:', error);
     }
@@ -166,23 +88,13 @@ const Processes = () => {
 
   const fetchEquipment = async () => {
     try {
-      const mockEquipment = [
-        { id: '1', name: 'Server Rack A', category: 'Hardware' },
-        { id: '2', name: 'Network Switch', category: 'Networking' },
-        { id: '3', name: 'Backup Drive', category: 'Storage' }
-      ];
+      const { data, error } = await supabase
+        .from('equipment_67abc23def')
+        .select('id, name, category')
+        .order('name');
 
-      try {
-        const { data, error } = await supabase
-          .from('equipment')
-          .select('id, name, category')
-          .order('name');
-
-        if (error) throw error;
-        setEquipment(data || []);
-      } catch (error) {
-        setEquipment(mockEquipment);
-      }
+      if (error) throw error;
+      setEquipment(data || []);
     } catch (error) {
       console.error('Error fetching equipment:', error);
     }
@@ -190,23 +102,13 @@ const Processes = () => {
 
   const fetchSoftware = async () => {
     try {
-      const mockSoftware = [
-        { id: '1', name: 'Salesforce', use_case: 'CRM Management' },
-        { id: '2', name: 'Slack', use_case: 'Team Communication' },
-        { id: '3', name: 'Jira', use_case: 'Project Management' }
-      ];
+      const { data, error } = await supabase
+        .from('software_67abc23def')
+        .select('id, name, use_case')
+        .order('name');
 
-      try {
-        const { data, error } = await supabase
-          .from('software')
-          .select('id, name, use_case')
-          .order('name');
-
-        if (error) throw error;
-        setSoftware(data || []);
-      } catch (error) {
-        setSoftware(mockSoftware);
-      }
+      if (error) throw error;
+      setSoftware(data || []);
     } catch (error) {
       console.error('Error fetching software:', error);
     }
@@ -214,23 +116,13 @@ const Processes = () => {
 
   const fetchTeam = async () => {
     try {
-      const mockTeam = [
-        { id: '1', name: 'John Doe', role: 'Lead Developer' },
-        { id: '2', name: 'Jane Smith', role: 'Project Manager' },
-        { id: '3', name: 'Bob Wilson', role: 'System Admin' }
-      ];
+      const { data, error } = await supabase
+        .from('team_67abc23def')
+        .select('id, name, role')
+        .order('name');
 
-      try {
-        const { data, error } = await supabase
-          .from('team')
-          .select('id, name, role')
-          .order('name');
-
-        if (error) throw error;
-        setTeam(data || []);
-      } catch (error) {
-        setTeam(mockTeam);
-      }
+      if (error) throw error;
+      setTeam(data || []);
     } catch (error) {
       console.error('Error fetching team:', error);
     }
@@ -245,33 +137,36 @@ const Processes = () => {
     try {
       if (editingProcess) {
         const { error } = await supabase
-          .from('processes')
+          .from('processes_67abc23def')
           .update(processData)
           .eq('id', editingProcess.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('processes')
+          .from('processes_67abc23def')
           .insert([processData]);
 
         if (error) throw error;
       }
-      
+
       setShowProcessForm(false);
       setEditingProcess(null);
       fetchProcesses();
     } catch (error) {
-      console.log('Mock save for development');
-      setShowProcessForm(false);
-      setEditingProcess(null);
+      console.error('Error saving process:', error);
+      alert('Error saving process. Please try again.');
     }
   };
 
   const tableColumns = [
     { key: 'name', label: 'Process Name', sortable: true },
     { key: 'description', label: 'Description', sortable: false },
-    { key: 'status', label: 'Status', type: 'badge', sortable: true,
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'badge',
+      sortable: true,
       getBadgeClass: (value) => {
         switch (value) {
           case 'Live': return 'bg-green-100 text-green-800';
@@ -282,42 +177,17 @@ const Processes = () => {
       }
     },
     { key: 'owner_name', label: 'Owner', sortable: true },
-    { key: 'systems_count', label: 'Systems', sortable: true,
-      render: (value) => (
-        <div className="flex items-center space-x-1">
-          <SafeIcon icon={FiMonitor} className="w-4 h-4 text-blue-600" />
-          <span>{value}</span>
-        </div>
-      )
-    },
-    { key: 'equipment_count', label: 'Equipment', sortable: true,
-      render: (value) => (
-        <div className="flex items-center space-x-1">
-          <SafeIcon icon={FiTool} className="w-4 h-4 text-orange-600" />
-          <span>{value}</span>
-        </div>
-      )
-    },
-    { key: 'software_count', label: 'Software', sortable: true,
-      render: (value) => (
-        <div className="flex items-center space-x-1">
-          <SafeIcon icon={FiSettings} className="w-4 h-4 text-purple-600" />
-          <span>{value}</span>
-        </div>
-      )
-    },
-    { key: 'team_count', label: 'Team', sortable: true,
-      render: (value) => (
-        <div className="flex items-center space-x-1">
-          <SafeIcon icon={FiUsers} className="w-4 h-4 text-green-600" />
-          <span>{value}</span>
-        </div>
-      )
-    },
-    { key: 'tasks_count', label: 'Tasks', sortable: true },
-    { key: 'sop_url', label: 'SOP', sortable: false,
+    {
+      key: 'sop_url',
+      label: 'SOP',
+      sortable: false,
       render: (value) => value ? (
-        <a href={value} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800">
+        <a
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary-600 hover:text-primary-800"
+        >
           <SafeIcon icon={FiExternalLink} className="w-4 h-4" />
         </a>
       ) : (
@@ -349,7 +219,6 @@ const Processes = () => {
             </div>
           </div>
         </div>
-
         <button
           onClick={() => setShowProcessForm(true)}
           className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"

@@ -1,21 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
+// Real Supabase credentials 
+const supabaseUrl = 'https://crzycouyfnljrjzaywpv.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyenljb3V5Zm5sanJqemF5d3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NjczNTQsImV4cCI6MjA2NjM0MzM1NH0.fC0hb5vS6aGzs20EosMvz4BDpeSxSAZSkW29AmIkE9s'
 
-// For development, use placeholder values if env vars are not set
-const developmentUrl = 'https://placeholder.supabase.co'
-const developmentKey = 'placeholder-key'
-
-export const supabase = createClient(
-  supabaseUrl === 'https://your-project.supabase.co' ? developmentUrl : supabaseUrl,
-  supabaseAnonKey === 'your-anon-key' ? developmentKey : supabaseAnonKey,
-  {
-    auth: {
-      persistSession: false, // Disable for development without real Supabase
-    }
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true
   }
-)
+})
 
 // Database setup SQL - Run this in your Supabase SQL editor
 export const DATABASE_SETUP_SQL = `

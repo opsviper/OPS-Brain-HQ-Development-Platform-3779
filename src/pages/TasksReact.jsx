@@ -27,72 +27,34 @@ const TasksReact = () => {
 
   const fetchTasks = async () => {
     try {
-      const mockTasks = [
-        {
-          id: '1',
-          title: 'Update client portal UI',
-          description: 'Redesign the client portal with new React components and improved UX',
-          task_type: 'react',
-          status: 'In Progress',
-          priority: 'High',
-          assignee_name: 'John Doe',
-          assignee: '1',
-          due_date: '2024-01-15',
-          process_name: 'Client Onboarding',
-          process_id: '1',
-          created_at: '2024-01-01'
-        },
-        {
-          id: '2',
-          title: 'Build dashboard analytics',
-          description: 'Create React components for real-time analytics dashboard',
-          task_type: 'react',
-          status: 'To Do',
-          priority: 'Medium',
-          assignee_name: 'Jane Smith',
-          assignee: '2',
-          due_date: '2024-01-25',
-          process_name: 'Monthly Reporting',
-          process_id: '2',
-          created_at: '2024-01-02'
-        }
-      ];
+      let query = supabase
+        .from('tasks_67abc23def')
+        .select(`
+          *,
+          users_67abc23def!tasks_67abc23def_assignee_fkey(name),
+          processes_67abc23def(name)
+        `)
+        .eq('task_type', 'react');
 
-      try {
-        let query = supabase
-          .from('tasks')
-          .select(`
-            *,
-            users!tasks_assignee_fkey(name),
-            processes(name)
-          `)
-          .eq('task_type', 'react');
-
-        if (filterStatus !== 'all') {
-          query = query.eq('status', filterStatus);
-        }
-
-        const { data, error } = await query.order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        const transformedTasks = data?.map(task => ({
-          ...task,
-          assignee_name: task.users?.name,
-          process_name: task.processes?.name
-        })) || [];
-
-        setTasks(transformedTasks);
-      } catch (error) {
-        console.log('Using mock data for development');
-        let filteredTasks = mockTasks;
-        if (filterStatus !== 'all') {
-          filteredTasks = filteredTasks.filter(task => task.status === filterStatus);
-        }
-        setTasks(filteredTasks);
+      if (filterStatus !== 'all') {
+        query = query.eq('status', filterStatus);
       }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedTasks = data?.map(task => ({
+        ...task,
+        assignee_name: task.users_67abc23def?.name,
+        process_name: task.processes_67abc23def?.name
+      })) || [];
+
+      setTasks(transformedTasks);
     } catch (error) {
       console.error('Error fetching tasks:', error);
+      // Fallback to empty array
+      setTasks([]);
     } finally {
       setLoading(false);
     }
@@ -100,67 +62,52 @@ const TasksReact = () => {
 
   const fetchUsers = async () => {
     try {
-      const mockUsers = [
-        { id: '1', name: 'John Doe', email: 'john@opsviper.com' },
-        { id: '2', name: 'Jane Smith', email: 'jane@opsviper.com' },
-        { id: '3', name: 'Bob Wilson', email: 'bob@opsviper.com' }
-      ];
+      const { data, error } = await supabase
+        .from('users_67abc23def')
+        .select('id, name, email')
+        .order('name');
 
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, name, email')
-          .order('name');
-
-        if (error) throw error;
-        setUsers(data || []);
-      } catch (error) {
-        setUsers(mockUsers);
-      }
+      if (error) throw error;
+      setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
     }
   };
 
   const fetchProcesses = async () => {
     try {
-      const mockProcesses = [
-        { id: '1', name: 'Client Onboarding' },
-        { id: '2', name: 'Monthly Reporting' },
-        { id: '3', name: 'System Maintenance' }
-      ];
+      const { data, error } = await supabase
+        .from('processes_67abc23def')
+        .select('id, name')
+        .order('name');
 
-      try {
-        const { data, error } = await supabase
-          .from('processes')
-          .select('id, name')
-          .order('name');
-
-        if (error) throw error;
-        setProcesses(data || []);
-      } catch (error) {
-        setProcesses(mockProcesses);
-      }
+      if (error) throw error;
+      setProcesses(data || []);
     } catch (error) {
       console.error('Error fetching processes:', error);
+      setProcesses([]);
     }
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       const { error } = await supabase
-        .from('tasks')
-        .update({ status: newStatus })
+        .from('tasks_67abc23def')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', taskId);
 
       if (error) throw error;
-      fetchTasks();
-    } catch (error) {
-      setTasks(prevTasks => 
-        prevTasks.map(task => 
+      
+      // Update local state immediately for better UX
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
           task.id === taskId ? { ...task, status: newStatus } : task
         )
       );
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      alert('Error updating task status. Please try again.');
     }
   };
 
@@ -169,37 +116,71 @@ const TasksReact = () => {
     setShowTaskForm(true);
   };
 
+  const handleDeleteTask = async (task) => {
+    if (!confirm(`Are you sure you want to delete "${task.title}"?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('tasks_67abc23def')
+        .delete()
+        .eq('id', task.id);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setTasks(prevTasks => prevTasks.filter(t => t.id !== task.id));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      alert('Error deleting task. Please try again.');
+    }
+  };
+
   const handleSaveTask = async (taskData) => {
     try {
       if (editingTask) {
+        // Update existing task
         const { error } = await supabase
-          .from('tasks')
-          .update(taskData)
+          .from('tasks_67abc23def')
+          .update({
+            ...taskData,
+            updated_at: new Date().toISOString()
+          })
           .eq('id', editingTask.id);
 
         if (error) throw error;
       } else {
+        // Create new task
         const { error } = await supabase
-          .from('tasks')
-          .insert([{ ...taskData, task_type: 'react' }]);
+          .from('tasks_67abc23def')
+          .insert([{
+            ...taskData,
+            task_type: 'react',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }]);
 
         if (error) throw error;
       }
-      
+
       setShowTaskForm(false);
       setEditingTask(null);
-      fetchTasks();
+      fetchTasks(); // Refresh the list
     } catch (error) {
-      console.log('Mock save for development');
-      setShowTaskForm(false);
-      setEditingTask(null);
+      console.error('Error saving task:', error);
+      alert('Error saving task. Please try again.');
     }
   };
 
   const tableColumns = [
     { key: 'title', label: 'Title', sortable: true },
     { key: 'description', label: 'Description', sortable: false },
-    { key: 'status', label: 'Status', type: 'badge', sortable: true,
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'badge',
+      sortable: true,
       getBadgeClass: (value) => {
         switch (value) {
           case 'Done': return 'bg-green-100 text-green-800';
@@ -209,7 +190,11 @@ const TasksReact = () => {
         }
       }
     },
-    { key: 'priority', label: 'Priority', type: 'badge', sortable: true,
+    {
+      key: 'priority',
+      label: 'Priority',
+      type: 'badge',
+      sortable: true,
       getBadgeClass: (value) => {
         switch (value) {
           case 'Critical': return 'bg-red-100 text-red-800';
@@ -248,7 +233,6 @@ const TasksReact = () => {
             </div>
           </div>
         </div>
-
         <div className="flex items-center space-x-4">
           {/* View Mode Toggle */}
           <div className="flex rounded-lg border border-gray-300">
@@ -337,6 +321,7 @@ const TasksReact = () => {
           columns={tableColumns}
           title="React Tasks"
           onEdit={handleEditTask}
+          onDelete={handleDeleteTask}
           searchable={true}
         />
       )}

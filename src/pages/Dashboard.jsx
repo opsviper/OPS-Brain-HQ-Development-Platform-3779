@@ -24,128 +24,80 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Mock data for development
-      const mockTasks = [
-        {
-          id: '1',
-          title: 'Update client portal',
-          task_type: 'react',
-          status: 'In Progress',
-          users: { name: 'John Doe' }
-        },
-        {
-          id: '2',
-          title: 'Database backup',
-          task_type: 'maintain',
-          status: 'To Do',
-          users: { name: 'Jane Smith' }
-        },
-        {
-          id: '3',
-          title: 'Optimize performance',
-          task_type: 'improve',
-          status: 'Done',
-          users: { name: 'Bob Wilson' }
-        }
-      ];
+      // Fetch task statistics from real database
+      const { data: tasks, error: tasksError } = await supabase
+        .from('tasks_67abc23def')
+        .select(`
+          *,
+          users_67abc23def!tasks_67abc23def_assignee_fkey(name)
+        `);
 
-      try {
-        // Fetch task statistics
-        const { data: tasks } = await supabase
-          .from('tasks')
-          .select('*, users(name)');
+      const { data: processes, error: processesError } = await supabase
+        .from('processes_67abc23def')
+        .select('*');
 
-        if (tasks && tasks.length > 0) {
-          const totalTasks = tasks.length;
-          const completedTasks = tasks.filter(task => task.status === 'Done').length;
-          const overdueTasks = tasks.filter(task => 
-            task.due_date && new Date(task.due_date) < new Date() && task.status !== 'Done'
-          ).length;
+      if (tasksError) {
+        console.error('Tasks error:', tasksError);
+        throw tasksError;
+      }
 
-          setStats(prev => ({
-            ...prev,
-            totalTasks,
-            completedTasks,
-            overdueTasks
-          }));
+      if (processesError) {
+        console.error('Processes error:', processesError);
+        throw processesError;
+      }
 
-          // Recent tasks
-          setRecentTasks(tasks.slice(0, 5));
-
-          // Tasks by type
-          const taskTypeData = ['react', 'maintain', 'improve'].map(type => ({
-            name: type.charAt(0).toUpperCase() + type.slice(1),
-            value: tasks.filter(task => task.task_type === type).length
-          }));
-          setTasksByType(taskTypeData);
-        } else {
-          throw new Error('No data from Supabase');
-        }
-      } catch (error) {
-        console.log('Using mock data for development');
-        // Use mock data
-        const totalTasks = mockTasks.length;
-        const completedTasks = mockTasks.filter(task => task.status === 'Done').length;
-        const overdueTasks = 0;
+      if (tasks && tasks.length > 0) {
+        const totalTasks = tasks.length;
+        const completedTasks = tasks.filter(task => task.status === 'Done').length;
+        const overdueTasks = tasks.filter(task => 
+          task.due_date && 
+          new Date(task.due_date) < new Date() && 
+          task.status !== 'Done'
+        ).length;
 
         setStats({
           totalTasks,
           completedTasks,
           overdueTasks,
-          activeProcesses: 3
+          activeProcesses: processes ? processes.length : 0
         });
 
-        setRecentTasks(mockTasks);
+        // Recent tasks with user names
+        const recentTasksWithUsers = tasks.slice(0, 5).map(task => ({
+          ...task,
+          users: { name: task.users_67abc23def?.name || 'Unassigned' }
+        }));
+        setRecentTasks(recentTasksWithUsers);
 
+        // Tasks by type
         const taskTypeData = ['react', 'maintain', 'improve'].map(type => ({
           name: type.charAt(0).toUpperCase() + type.slice(1),
-          value: mockTasks.filter(task => task.task_type === type).length
+          value: tasks.filter(task => task.task_type === type).length
         }));
         setTasksByType(taskTypeData);
+      } else {
+        // If no data, set defaults
+        setStats({ totalTasks: 0, completedTasks: 0, overdueTasks: 0, activeProcesses: 0 });
+        setRecentTasks([]);
+        setTasksByType([]);
       }
-
-      // Mock process count
-      setStats(prev => ({
-        ...prev,
-        activeProcesses: 3
-      }));
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      // Set default values on error
+      setStats({ totalTasks: 0, completedTasks: 0, overdueTasks: 0, activeProcesses: 0 });
+      setRecentTasks([]);
+      setTasksByType([]);
     } finally {
       setLoading(false);
     }
   };
 
   const statCards = [
-    {
-      title: 'Total Tasks',
-      value: stats.totalTasks,
-      icon: FiCheckSquare,
-      color: 'bg-blue-500',
-      change: '+12%'
-    },
-    {
-      title: 'Completed',
-      value: stats.completedTasks,
-      icon: FiTrendingUp,
-      color: 'bg-green-500',
-      change: '+8%'
-    },
-    {
-      title: 'Overdue',
-      value: stats.overdueTasks,
-      icon: FiAlertTriangle,
-      color: 'bg-red-500',
-      change: '-3%'
-    },
-    {
-      title: 'Active Processes',
-      value: stats.activeProcesses,
-      icon: FiUsers,
-      color: 'bg-purple-500',
-      change: '+5%'
-    }
+    { title: 'Total Tasks', value: stats.totalTasks, icon: FiCheckSquare, color: 'bg-blue-500', change: '+12%' },
+    { title: 'Completed', value: stats.completedTasks, icon: FiTrendingUp, color: 'bg-green-500', change: '+8%' },
+    { title: 'Overdue', value: stats.overdueTasks, icon: FiAlertTriangle, color: 'bg-red-500', change: '-3%' },
+    { title: 'Active Processes', value: stats.activeProcesses, icon: FiUsers, color: 'bg-purple-500', change: '+5%' }
   ];
 
   const chartOptions = {
@@ -227,7 +179,10 @@ const Dashboard = () => {
         >
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Tasks by Type</h3>
           <div className="h-64">
-            <ReactECharts option={chartOptions} style={{ height: '100%', width: '100%' }} />
+            <ReactECharts
+              option={chartOptions}
+              style={{ height: '100%', width: '100%' }}
+            />
           </div>
         </motion.div>
 
@@ -240,11 +195,14 @@ const Dashboard = () => {
         >
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Tasks</h3>
           <div className="space-y-4">
-            {recentTasks.map((task, index) => (
+            {recentTasks.length > 0 ? recentTasks.map((task, index) => (
               <div key={task.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                 <div className={`w-3 h-3 rounded-full ${
-                  task.status === 'Done' ? 'bg-green-500' :
-                  task.status === 'In Progress' ? 'bg-blue-500' : 'bg-gray-400'
+                  task.status === 'Done' 
+                    ? 'bg-green-500' 
+                    : task.status === 'In Progress' 
+                    ? 'bg-blue-500' 
+                    : 'bg-gray-400'
                 }`}></div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
@@ -253,14 +211,21 @@ const Dashboard = () => {
                   </p>
                 </div>
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  task.status === 'Done' ? 'bg-green-100 text-green-800' :
-                  task.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                  'bg-gray-100 text-gray-800'
+                  task.status === 'Done' 
+                    ? 'bg-green-100 text-green-800'
+                    : task.status === 'In Progress' 
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-gray-100 text-gray-800'
                 }`}>
                   {task.status}
                 </span>
               </div>
-            ))}
+            )) : (
+              <div className="text-center text-gray-500 py-8">
+                <p>No tasks found</p>
+                <p className="text-sm">Start by creating your first task!</p>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>
