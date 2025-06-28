@@ -8,6 +8,12 @@ import TasksReact from './pages/TasksReact';
 import TasksMaintain from './pages/TasksMaintain';
 import TasksImprove from './pages/TasksImprove';
 import Processes from './pages/Processes';
+import Systems from './pages/Systems';
+import Equipment from './pages/Equipment';
+import Software from './pages/Software';
+import Team from './pages/Team';
+import Ideas from './pages/Ideas';
+import Events from './pages/Events';
 import Reports from './pages/Reports';
 import './App.css';
 
@@ -52,18 +58,23 @@ const AppContent = () => {
         
         {/* Toolbox Routes */}
         <Route path="/processes" element={<Processes />} />
-        <Route path="/systems" element={<div className="p-6"><h1 className="text-2xl font-bold">Systems Database</h1><p className="text-gray-600">Systems inventory and management - Coming soon...</p></div>} />
-        <Route path="/equipment" element={<div className="p-6"><h1 className="text-2xl font-bold">Equipment Database</h1><p className="text-gray-600">Equipment tracking and maintenance - Coming soon...</p></div>} />
-        <Route path="/software" element={<div className="p-6"><h1 className="text-2xl font-bold">Software Database</h1><p className="text-gray-600">Software inventory and licenses - Coming soon...</p></div>} />
-        <Route path="/team" element={<div className="p-6"><h1 className="text-2xl font-bold">Team Database</h1><p className="text-gray-600">Team member management - Coming soon...</p></div>} />
-        <Route path="/events" element={<div className="p-6"><h1 className="text-2xl font-bold">Key Events Database</h1><p className="text-gray-600">Important events tracking - Coming soon...</p></div>} />
-        <Route path="/ideas" element={<div className="p-6"><h1 className="text-2xl font-bold">Ideas Database</h1><p className="text-gray-600">Innovation and improvement ideas - Coming soon...</p></div>} />
+        <Route path="/systems" element={<Systems />} />
+        <Route path="/equipment" element={<Equipment />} />
+        <Route path="/software" element={<Software />} />
+        <Route path="/team" element={<Team />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/ideas" element={<Ideas />} />
         
         {/* Reports */}
         <Route path="/reports" element={<Reports />} />
         
         {/* Admin */}
-        <Route path="/admin" element={<div className="p-6"><h1 className="text-2xl font-bold">Admin Panel</h1><p className="text-gray-600">System administration - Coming soon...</p></div>} />
+        <Route path="/admin" element={
+          <div className="p-6">
+            <h1 className="text-2xl font-bold">Admin Panel</h1>
+            <p className="text-gray-600">System administration - Coming soon...</p>
+          </div>
+        } />
         
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
