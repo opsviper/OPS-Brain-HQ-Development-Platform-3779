@@ -4,6 +4,7 @@ import { supabase } from '../config/supabase';
 import TaskCard from '../components/common/TaskCard';
 import DataTable from '../components/common/DataTable';
 import TaskForm from '../components/forms/TaskForm';
+import TaskComments from '../components/common/TaskComments';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
@@ -18,6 +19,8 @@ const TasksReact = () => {
   const [loading, setLoading] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [showComments, setShowComments] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   useEffect(() => {
     fetchTasks();
@@ -44,16 +47,36 @@ const TasksReact = () => {
 
       if (error) throw error;
 
-      const transformedTasks = data?.map(task => ({
-        ...task,
-        assignee_name: task.users_67abc23def?.name,
-        process_name: task.processes_67abc23def?.name
-      })) || [];
+      // Fetch comment counts for each task
+      const tasksWithComments = await Promise.all(
+        (data || []).map(async (task) => {
+          try {
+            const { count } = await supabase
+              .from('task_comments_67abc23def')
+              .select('*', { count: 'exact', head: true })
+              .eq('task_id', task.id);
 
-      setTasks(transformedTasks);
+            return {
+              ...task,
+              assignee_name: task.users_67abc23def?.name,
+              process_name: task.processes_67abc23def?.name,
+              comments_count: count || 0
+            };
+          } catch (error) {
+            console.error('Error fetching comment count for task:', task.id, error);
+            return {
+              ...task,
+              assignee_name: task.users_67abc23def?.name,
+              process_name: task.processes_67abc23def?.name,
+              comments_count: 0
+            };
+          }
+        })
+      );
+
+      setTasks(tasksWithComments);
     } catch (error) {
       console.error('Error fetching tasks:', error);
-      // Fallback to empty array
       setTasks([]);
     } finally {
       setLoading(false);
@@ -94,11 +117,14 @@ const TasksReact = () => {
     try {
       const { error } = await supabase
         .from('tasks_67abc23def')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', taskId);
 
       if (error) throw error;
-      
+
       // Update local state immediately for better UX
       setTasks(prevTasks =>
         prevTasks.map(task =>
@@ -116,12 +142,24 @@ const TasksReact = () => {
     setShowTaskForm(true);
   };
 
+  const handleOpenComments = (task) => {
+    setSelectedTask(task);
+    setShowComments(true);
+  };
+
   const handleDeleteTask = async (task) => {
     if (!confirm(`Are you sure you want to delete "${task.title}"?`)) {
       return;
     }
 
     try {
+      // First delete all comments for this task
+      await supabase
+        .from('task_comments_67abc23def')
+        .delete()
+        .eq('task_id', task.id);
+
+      // Then delete the task
       const { error } = await supabase
         .from('tasks_67abc23def')
         .delete()
@@ -207,7 +245,21 @@ const TasksReact = () => {
     },
     { key: 'assignee_name', label: 'Assignee', sortable: true },
     { key: 'due_date', label: 'Due Date', type: 'date', sortable: true },
-    { key: 'process_name', label: 'Process', sortable: true }
+    { key: 'process_name', label: 'Process', sortable: true },
+    {
+      key: 'comments_count',
+      label: 'Comments',
+      sortable: true,
+      render: (value, row) => (
+        <button
+          onClick={() => handleOpenComments(row)}
+          className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
+        >
+          <SafeIcon icon={FiIcons.FiMessageCircle} className="w-4 h-4" />
+          <span>{value || 0}</span>
+        </button>
+      )
+    }
   ];
 
   if (loading) {
@@ -239,9 +291,7 @@ const TasksReact = () => {
             <button
               onClick={() => setViewMode('cards')}
               className={`px-3 py-2 rounded-l-lg ${
-                viewMode === 'cards' 
-                  ? 'bg-primary-600 text-white' 
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                viewMode === 'cards' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
               <SafeIcon icon={FiGrid} className="w-4 h-4" />
@@ -249,9 +299,7 @@ const TasksReact = () => {
             <button
               onClick={() => setViewMode('table')}
               className={`px-3 py-2 rounded-r-lg ${
-                viewMode === 'table' 
-                  ? 'bg-primary-600 text-white' 
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
+                viewMode === 'table' ? 'bg-primary-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
               <SafeIcon icon={FiList} className="w-4 h-4" />
@@ -312,6 +360,7 @@ const TasksReact = () => {
               task={task}
               onEdit={handleEditTask}
               onStatusChange={handleStatusChange}
+              onOpenComments={handleOpenComments}
             />
           ))}
         </div>
@@ -357,6 +406,17 @@ const TasksReact = () => {
           }}
         />
       )}
+
+      {/* Comments Modal */}
+      <TaskComments
+        taskId={selectedTask?.id}
+        isOpen={showComments}
+        onClose={() => {
+          setShowComments(false);
+          setSelectedTask(null);
+          fetchTasks(); // Refresh to update comment counts
+        }}
+      />
     </div>
   );
 };

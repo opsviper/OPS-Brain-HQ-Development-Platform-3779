@@ -4,9 +4,9 @@ import SafeIcon from '../../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 import { format } from 'date-fns';
 
-const { FiClock, FiUser, FiFlag, FiEdit3 } = FiIcons;
+const { FiClock, FiUser, FiFlag, FiEdit3, FiMessageCircle } = FiIcons;
 
-const TaskCard = ({ task, onEdit, onStatusChange }) => {
+const TaskCard = ({ task, onEdit, onStatusChange, onOpenComments }) => {
   const getPriorityColor = (priority) => {
     switch (priority?.toLowerCase()) {
       case 'critical': return 'text-red-600 bg-red-100';
@@ -50,12 +50,28 @@ const TaskCard = ({ task, onEdit, onStatusChange }) => {
             <p className="text-sm text-gray-600 line-clamp-2">{task.description}</p>
           )}
         </div>
-        <button
-          onClick={() => onEdit(task)}
-          className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-        >
-          <SafeIcon icon={FiEdit3} className="w-4 h-4" />
-        </button>
+        <div className="flex items-center space-x-1 ml-2">
+          <button
+            onClick={() => onOpenComments(task)}
+            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-600 transition-colors"
+            title="View Comments"
+          >
+            <div className="relative">
+              <SafeIcon icon={FiMessageCircle} className="w-4 h-4" />
+              {task.comments_count > 0 && (
+                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium">
+                  {task.comments_count > 9 ? '9+' : task.comments_count}
+                </span>
+              )}
+            </div>
+          </button>
+          <button
+            onClick={() => onEdit(task)}
+            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+          >
+            <SafeIcon icon={FiEdit3} className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Tags */}

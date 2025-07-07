@@ -1,12 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Use environment variables instead of hardcoded values
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please check your .env file.')
-}
+// Real Supabase credentials
+const supabaseUrl = 'https://crzycouyfnljrjzaywpv.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNyenljb3V5Zm5sanJqemF5d3B2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3NjczNTQsImV4cCI6MjA2NjM0MzM1NH0.fC0hb5vS6aGzs20EosMvz4BDpeSxSAZSkW29AmIkE9s'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -23,7 +19,7 @@ const testConnection = async () => {
       .from('users_67abc23def')
       .select('count')
       .limit(1)
-    
+
     if (error) {
       console.error('❌ Supabase connection failed:', error)
       return false
@@ -76,6 +72,16 @@ CREATE TABLE IF NOT EXISTS tasks_67abc23def (
   due_date DATE,
   priority TEXT CHECK (priority IN ('Low', 'Medium', 'High', 'Critical')) DEFAULT 'Medium',
   process_id UUID REFERENCES processes_67abc23def(id),
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT now()
+);
+
+-- Task Comments table (NEW)
+CREATE TABLE IF NOT EXISTS task_comments_67abc23def (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  task_id UUID REFERENCES tasks_67abc23def(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users_67abc23def(id),
+  comment TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT now(),
   updated_at TIMESTAMP DEFAULT now()
 );
@@ -183,6 +189,7 @@ CREATE TABLE IF NOT EXISTS key_events_67abc23def (
 ALTER TABLE users_67abc23def ENABLE ROW LEVEL SECURITY;
 ALTER TABLE processes_67abc23def ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks_67abc23def ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_comments_67abc23def ENABLE ROW LEVEL SECURITY;
 ALTER TABLE systems_67abc23def ENABLE ROW LEVEL SECURITY;
 ALTER TABLE equipment_67abc23def ENABLE ROW LEVEL SECURITY;
 ALTER TABLE software_67abc23def ENABLE ROW LEVEL SECURITY;
@@ -199,6 +206,9 @@ CREATE POLICY "Allow all operations" ON processes_67abc23def FOR ALL USING (true
 
 DROP POLICY IF EXISTS "Allow all operations" ON tasks_67abc23def;
 CREATE POLICY "Allow all operations" ON tasks_67abc23def FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow all operations" ON task_comments_67abc23def;
+CREATE POLICY "Allow all operations" ON task_comments_67abc23def FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow all operations" ON systems_67abc23def;
 CREATE POLICY "Allow all operations" ON systems_67abc23def FOR ALL USING (true) WITH CHECK (true);
@@ -241,26 +251,32 @@ INSERT INTO tasks_67abc23def (title, description, task_type, status, assignee, p
   ('Setup new client portal', 'Implement new features for client portal', 'react', 'Done', '550e8400-e29b-41d4-a716-446655440003', 'High', '2024-07-15', '2024-07-01'),
   ('Database optimization', 'Optimize database queries for better performance', 'improve', 'Done', '550e8400-e29b-41d4-a716-446655440004', 'Medium', '2024-07-20', '2024-07-05'),
   ('Server maintenance', 'Perform monthly server maintenance', 'maintain', 'Done', '550e8400-e29b-41d4-a716-446655440002', 'High', '2024-07-25', '2024-07-10'),
+  
   -- Tasks from 5 months ago
   ('React component library', 'Create reusable React components', 'react', 'Done', '550e8400-e29b-41d4-a716-446655440003', 'Medium', '2024-08-15', '2024-08-01'),
   ('Security patch updates', 'Apply latest security patches', 'maintain', 'Done', '550e8400-e29b-41d4-a716-446655440004', 'Critical', '2024-08-10', '2024-08-05'),
   ('API performance improvement', 'Improve API response times', 'improve', 'Done', '550e8400-e29b-41d4-a716-446655440002', 'High', '2024-08-30', '2024-08-15'),
+  
   -- Tasks from 4 months ago
   ('Client dashboard redesign', 'Redesign client dashboard with React', 'react', 'Done', '550e8400-e29b-41d4-a716-446655440003', 'High', '2024-09-20', '2024-09-01'),
   ('Backup system check', 'Verify backup system integrity', 'maintain', 'Done', '550e8400-e29b-41d4-a716-446655440001', 'Medium', '2024-09-15', '2024-09-05'),
   ('User experience optimization', 'Improve overall user experience', 'improve', 'In Progress', '550e8400-e29b-41d4-a716-446655440004', 'Medium', '2024-09-30', '2024-09-10'),
+  
   -- Tasks from 3 months ago
   ('Mobile responsive updates', 'Make application mobile responsive', 'react', 'Done', '550e8400-e29b-41d4-a716-446655440003', 'High', '2024-10-15', '2024-10-01'),
   ('System monitoring setup', 'Setup comprehensive system monitoring', 'maintain', 'Done', '550e8400-e29b-41d4-a716-446655440002', 'High', '2024-10-25', '2024-10-05'),
   ('Load balancing improvement', 'Implement better load balancing', 'improve', 'Done', '550e8400-e29b-41d4-a716-446655440004', 'Medium', '2024-10-30', '2024-10-10'),
+  
   -- Tasks from 2 months ago
   ('React hooks migration', 'Migrate class components to hooks', 'react', 'Done', '550e8400-e29b-41d4-a716-446655440003', 'Medium', '2024-11-15', '2024-11-01'),
   ('SSL certificate renewal', 'Renew SSL certificates', 'maintain', 'Done', '550e8400-e29b-41d4-a716-446655440001', 'High', '2024-11-10', '2024-11-02'),
   ('Caching strategy optimization', 'Optimize caching for better performance', 'improve', 'In Progress', '550e8400-e29b-41d4-a716-446655440004', 'High', '2024-11-30', '2024-11-15'),
+  
   -- Tasks from last month
   ('New feature development', 'Develop new React features for Q1', 'react', 'In Progress', '550e8400-e29b-41d4-a716-446655440003', 'High', '2025-01-15', '2024-12-01'),
   ('Year-end maintenance', 'Perform comprehensive year-end maintenance', 'maintain', 'Done', '550e8400-e29b-41d4-a716-446655440002', 'Critical', '2024-12-31', '2024-12-15'),
   ('Performance benchmarking', 'Benchmark and improve system performance', 'improve', 'To Do', '550e8400-e29b-41d4-a716-446655440004', 'Medium', '2025-01-20', '2024-12-20'),
+  
   -- Current month tasks (some overdue for realistic reporting)
   ('Critical bug fixes', 'Fix critical bugs in production', 'react', 'In Progress', '550e8400-e29b-41d4-a716-446655440003', 'Critical', '2025-01-05', '2025-01-01'),
   ('Database backup verification', 'Verify all database backups', 'maintain', 'To Do', '550e8400-e29b-41d4-a716-446655440001', 'High', '2025-01-10', '2025-01-03'),
@@ -315,5 +331,12 @@ INSERT INTO key_events_67abc23def (title, description, event_type, event_date, c
   ('Security Audit', 'Annual security compliance audit', 'Compliance', '2024-03-01', '2024-02-15'),
   ('Team Training', 'React and modern development training', 'Training', '2025-01-20', '2025-01-10'),
   ('Product Launch', 'Launch of new client portal features', 'Business', '2025-02-01', '2025-01-15')
+ON CONFLICT DO NOTHING;
+
+-- Add some sample comments for demo
+INSERT INTO task_comments_67abc23def (task_id, user_id, comment, created_at) VALUES
+  ((SELECT id FROM tasks_67abc23def WHERE title = 'Critical bug fixes' LIMIT 1), '550e8400-e29b-41d4-a716-446655440003', 'Working on the authentication issue first, then moving to the payment gateway bug.', '2025-01-02 10:00:00'),
+  ((SELECT id FROM tasks_67abc23def WHERE title = 'Critical bug fixes' LIMIT 1), '550e8400-e29b-41d4-a716-446655440001', 'Please prioritize the payment gateway issue as it''s affecting multiple clients.', '2025-01-02 14:30:00'),
+  ((SELECT id FROM tasks_67abc23def WHERE title = 'New feature development' LIMIT 1), '550e8400-e29b-41d4-a716-446655440003', 'Started working on the user dashboard redesign. Should have mockups ready by end of week.', '2024-12-05 09:15:00')
 ON CONFLICT DO NOTHING;
 `;
